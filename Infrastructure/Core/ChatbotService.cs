@@ -124,8 +124,13 @@ Luật ý định:
   "maxPrice": "giá cao nhất (số hoặc null). Ví dụ: 'dưới 500k' -> 500000, 'tầm 1 triệu đổ lại' -> 1000000",
   "sortPrice": "hướng sắp xếp: 'asc' (nếu khách muốn rẻ nhất/giá thấp nhất), 'desc' (nếu khách muốn đắt nhất/sang trọng nhất/tốt nhất trong tầm giá) hoặc null",
   "origin": ["xuất xứ/nguồn gốc: tách từng địa danh hoặc quốc gia thành phần tử riêng, viết thường. VD: 'bang cleveland Mỹ' -> ['cleveland','mỹ'], 'Nhật Bản' -> ['nhật bản'], 'Pháp, Ý' -> ['pháp','ý']"],
-  "description": "tóm tắt yêu cầu tổng quát của khách về phong cách, cảm xúc (vd: 'quà tặng phong cách ấm áp, sang trọng')"
+  "description": "chỉ dùng cho mô tả phong cách/cảm xúc trừu tượng (vd: 'ấm áp, sang trọng'). Để rỗng nếu không có."
 }
+
+Luật description (quan trọng):
+- Hệ thống tìm sản phẩm qua products, attributes, minPrice, maxPrice, sortPrice, origin — KHÔNG dùng description để lọc.
+- Mọi từ khóa có thể xuất hiện trong tên/mô tả sản phẩm (hộp quà, gấu bông, socola, màu hồng, v.v.) phải đưa vào products hoặc attributes, không gom vào description.
+- Chỉ hỏi giá/ngân sách/rẻ nhất/đắt nhất/dưới Xk mà không mô tả phong cách trừu tượng → description = "" (không nhét lại cả câu hỏi vào description).
 
 Nếu needProductSearch = false thì hãy để:
 - products = []
@@ -145,13 +150,13 @@ Output:
 
 Input: "Tôi muốn tìm hộp quà có gấu bông màu hồng và socola cho bạn nữ, giá khoảng 500k"
 Output: 
-{"needProductSearch":true,"products":["gấu bông","socola"],"attributes":["màu hồng"],"occasion":"","recipient":"bạn nữ","minPrice":null,"maxPrice":500000,"sortPrice":"desc","origin":[],"description":"hộp quà gấu bông hồng và socola"}
+{"needProductSearch":true,"products":["hộp quà","gấu bông","socola"],"attributes":["màu hồng"],"occasion":"","recipient":"bạn nữ","minPrice":null,"maxPrice":500000,"sortPrice":"desc","origin":[],"description":""}
 
 Input: "tôi chỉ có 500k thì mua món nào"
 Output:
 {"needProductSearch":true,"products":[],"attributes":[],"occasion":"","recipient":"","minPrice":null,"maxPrice":500000,"sortPrice":"desc","origin":[],"description":""}
 
-Input: "tìm cho tôi món nào rẻ nhất dưới 200k"
+Input: "tìm cho tôi món nào rẻ nhất dưới 200000"
 Output:
 {"needProductSearch":true,"products":[],"attributes":[],"occasion":"","recipient":"","minPrice":null,"maxPrice":200000,"sortPrice":"asc","origin":[],"description":""}
 
@@ -248,14 +253,6 @@ Chỉ trả về JSON hợp lệ, không thêm văn bản nào khác.
                         originTerms.Any(term =>
                             (p.Name + " " + (p.Description ?? "")).ToLowerInvariant().Contains(term)));
                 }
-            }
-
-            if (!string.IsNullOrWhiteSpace(criteria.Description))
-            {
-                var descKeywords = criteria.Description.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                query = query.Where(p =>
-                    descKeywords.Any(kw =>
-                        (p.Name + " " + (p.Description ?? "")).ToLowerInvariant().Contains(kw)));
             }
 
             if (criteria.SortPrice == "asc")
