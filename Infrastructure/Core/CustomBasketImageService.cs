@@ -230,8 +230,21 @@ namespace Infrastructure.Core
             if (string.IsNullOrWhiteSpace(request.PreviewImageUrl))
                 throw new ArgumentException("PreviewImageUrl là bắt buộc.", nameof(request));
 
-            if (!request.PreviewImageUrl.StartsWith("/images/custom-baskets/temp/"))
-                throw new ArgumentException("PreviewImageUrl không hợp lệ. Chỉ chấp nhận URL từ thư mục temp.");
+            var previewImageUrl = request.PreviewImageUrl.Trim();
+            var isAbsolutePreviewUrl =
+                Uri.TryCreate(previewImageUrl, UriKind.Absolute, out var previewUri) &&
+                (previewUri.Scheme == Uri.UriSchemeHttp || previewUri.Scheme == Uri.UriSchemeHttps);
+
+            var previewPath = isAbsolutePreviewUrl
+                ? previewUri!.AbsolutePath
+                : previewImageUrl;
+
+            var isTempPreviewPath = previewPath.StartsWith(
+                "/images/custom-baskets/temp/",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (!isTempPreviewPath && !isAbsolutePreviewUrl)
+                throw new ArgumentException("PreviewImageUrl không hợp lệ. Chỉ chấp nhận full URL hoặc URL từ thư mục temp.", nameof(request));
 
             if (request.Products == null || request.Products.Count == 0)
                 throw new ArgumentException("Cần ít nhất một sản phẩm.", nameof(request));
@@ -244,21 +257,31 @@ namespace Infrastructure.Core
             if (string.IsNullOrWhiteSpace(webRootPath))
                 throw new InvalidOperationException("WebRootPath is not configured. Ensure wwwroot folder exists.");
 
-            var tempFileName = Path.GetFileName(request.PreviewImageUrl);
-            var tempFilePath = Path.Combine(webRootPath, "images", "custom-baskets", "temp", tempFileName);
-
-            if (!File.Exists(tempFilePath))
-                throw new Exception("File ảnh preview không tồn tại hoặc đã bị xóa. Vui lòng tạo lại.");
-
-            var finalFolder = Path.Combine(webRootPath, "images", "custom-baskets", "final");
-            if (!Directory.Exists(finalFolder))
-                Directory.CreateDirectory(finalFolder);
-
             var giftBoxId = Guid.NewGuid();
-            var finalFileName = $"giftbox_{giftBoxId}.png";
-            var finalFilePath = Path.Combine(finalFolder, finalFileName);
+            string finalImageUrl;
 
-           File.Move(tempFilePath, finalFilePath);
+            if (isTempPreviewPath)
+            {
+                var tempFileName = Path.GetFileName(previewPath);
+                var tempFilePath = Path.Combine(webRootPath, "images", "custom-baskets", "temp", tempFileName);
+
+                if (!File.Exists(tempFilePath))
+                    throw new Exception("File ảnh preview không tồn tại hoặc đã bị xóa. Vui lòng tạo lại.");
+
+                var finalFolder = Path.Combine(webRootPath, "images", "custom-baskets", "final");
+                if (!Directory.Exists(finalFolder))
+                    Directory.CreateDirectory(finalFolder);
+
+                var finalFileName = $"giftbox_{giftBoxId}.png";
+                var finalFilePath = Path.Combine(finalFolder, finalFileName);
+
+                File.Move(tempFilePath, finalFilePath);
+                finalImageUrl = $"/images/custom-baskets/final/{finalFileName}";
+            }
+            else
+            {
+                finalImageUrl = previewImageUrl;
+            }
 
             var productIds = request.Products.Select(p => p.ProductId).Distinct().ToList();
             var products = new List<Product>();
@@ -326,7 +349,7 @@ namespace Infrastructure.Core
             var image = new Image
             {
                 Id = Guid.NewGuid(),
-                Url = $"/images/custom-baskets/final/{finalFileName}",
+                Url = finalImageUrl,
                 IsMain = true,
                 SortOrder = 1,
                 GiftBoxId = giftBoxId,
