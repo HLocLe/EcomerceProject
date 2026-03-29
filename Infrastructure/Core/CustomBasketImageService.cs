@@ -306,6 +306,23 @@ namespace Infrastructure.Core
 
             await _unitOfWork.GiftBoxRepository.AddAsync(giftBox);
 
+            var componentLines = request.Products
+                .Where(p => products.Any(pr => pr.Id == p.ProductId))
+                .GroupBy(p => p.ProductId)
+                .Select(g => (ProductId: g.Key, Quantity: g.Sum(x => x.Quantity)));
+
+            foreach (var line in componentLines)
+            {
+                var boxComponent = new BoxComponent
+                {
+                    GiftBoxId = giftBoxId,
+                    ProductId = line.ProductId,
+                    Quantity = line.Quantity,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _unitOfWork.Repository<BoxComponent>().AddAsync(boxComponent);
+            }
+
             var image = new Image
             {
                 Id = Guid.NewGuid(),
