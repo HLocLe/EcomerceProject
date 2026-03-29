@@ -185,8 +185,9 @@ namespace Application.Service.GiftBox
                 // 3. Add Images if provided
                 if (request.ImageUrls != null && request.ImageUrls.Any())
                 {
+                    var uniqueImageUrls = GetDistinctImageUrls(request.ImageUrls);
                     int sortOrder = 0;
-                    foreach (var imageUrl in request.ImageUrls)
+                    foreach (var imageUrl in uniqueImageUrls)
                     {
                         var image = new ImageEntity
                         {
@@ -376,6 +377,8 @@ namespace Application.Service.GiftBox
                 // Update Images if provided (null = không thay ??i, empty = xóa h?t)
                 if (request.ImageUrls != null)
                 {
+                    var uniqueImageUrls = GetDistinctImageUrls(request.ImageUrls);
+
                     // Soft delete old images
                     var existingImages = giftBox.Images.Where(img => !img.IsDeleted).ToList();
                     foreach (var oldImage in existingImages)
@@ -387,7 +390,7 @@ namespace Application.Service.GiftBox
 
                     // Add new images
                     int sortOrder = 0;
-                    foreach (var imageUrl in request.ImageUrls)
+                    foreach (var imageUrl in uniqueImageUrls)
                     {
                         var image = new ImageEntity
                         {
@@ -438,6 +441,40 @@ namespace Application.Service.GiftBox
             await _unitOfWork.SaveChangesAsync();
 
             return true;
+        }
+
+        private static IReadOnlyList<string> GetDistinctImageUrls(IEnumerable<string> imageUrls)
+        {
+            var normalizedImageUrls = new List<string>();
+            var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var duplicateUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var imageUrl in imageUrls)
+            {
+                var normalizedUrl = imageUrl?.Trim();
+
+                if (string.IsNullOrWhiteSpace(normalizedUrl))
+                {
+                    throw new InvalidOperationException("ImageUrls cannot contain empty values.");
+                }
+
+                if (!seenUrls.Add(normalizedUrl))
+                {
+                    duplicateUrls.Add(normalizedUrl);
+                    continue;
+                }
+
+                normalizedImageUrls.Add(normalizedUrl);
+            }
+
+            if (duplicateUrls.Any())
+            {
+                throw new InvalidOperationException(
+                    $"ImageUrls contains duplicate values: {string.Join(", ", duplicateUrls)}."
+                );
+            }
+
+            return normalizedImageUrls;
         }
     }
 }
