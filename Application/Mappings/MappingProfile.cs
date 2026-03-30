@@ -158,6 +158,18 @@ namespace Application.Mappings
             CreateMap<OrderHistory, OrderHistoryResponse>();
 
             CreateMap<Order, OrderResponse>()
+                .ForMember(
+                    dest => dest.PaymentMethod,
+                    opt => opt.MapFrom(src =>
+                        src.Payments == null
+                            ? string.Empty
+                            : src.Payments
+                                .Where(p => !p.IsDeleted)
+                                .OrderByDescending(p => p.CreatedAt)
+                                .Select(p => p.PaymentMethod)
+                                .FirstOrDefault() ?? string.Empty
+                    )
+                )
                 .ForMember(dest => dest.OrderDetails, opt => opt.MapFrom(src => src.OrderDetails))
                 .ForMember(dest => dest.OrderHistories, opt => opt.MapFrom(src => src.OrderHistories));
 
