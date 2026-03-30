@@ -27,9 +27,24 @@ namespace Infrastructure.Core.Momo
             _options = options.Value;
         }
 
-        public async Task<MomoCreateGatewayResultDto> CreatePaymentAsync(MomoCreateGatewayRequestDto request)
+        public Task<MomoCreateGatewayResultDto> CreatePaymentAsync(MomoCreateGatewayRequestDto request)
         {
-            ValidateConfig();
+            return CreatePaymentInternalAsync(request, _options.RedirectUrl);
+        }
+
+        public Task<MomoCreateGatewayResultDto> CreateMobilePaymentAsync(MomoCreateGatewayRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(_options.MobileRedirectUrl))
+                throw new Exception("Cấu hình MomoAPI:MobileRedirectUrl chưa được thiết lập.");
+
+            return CreatePaymentInternalAsync(request, _options.MobileRedirectUrl);
+        }
+
+        private async Task<MomoCreateGatewayResultDto> CreatePaymentInternalAsync(
+    MomoCreateGatewayRequestDto request,
+    string redirectUrl)
+        {
+            ValidateConfig(redirectUrl);
 
             var amount = ToLongAmount(request.Amount);
             if (amount < 1000)
@@ -46,7 +61,7 @@ namespace Infrastructure.Core.Momo
             var rawSignature =
                 $"accessKey={_options.AccessKey}&amount={amount}&extraData={extraData}" +
                 $"&ipnUrl={_options.IpnUrl}&orderId={request.TransactionReference}&orderInfo={finalOrderInfo}" +
-                $"&partnerCode={_options.PartnerCode}&redirectUrl={_options.RedirectUrl}" +
+                $"&partnerCode={_options.PartnerCode}&redirectUrl={redirectUrl}" +
                 $"&requestId={request.TransactionReference}&requestType=captureWallet";
 
             var signature = ComputeHmacSha256(rawSignature, _options.SecretKey);
@@ -56,7 +71,7 @@ namespace Infrastructure.Core.Momo
                 PartnerCode = _options.PartnerCode,
                 RequestType = "captureWallet",
                 IpnUrl = _options.IpnUrl,
-                RedirectUrl = _options.RedirectUrl,
+                RedirectUrl = redirectUrl,
                 OrderId = request.TransactionReference,
                 Amount = amount,
                 OrderInfo = finalOrderInfo,
@@ -83,7 +98,8 @@ namespace Infrastructure.Core.Momo
                 Message = momoResponse?.Message ?? string.Empty,
                 PayUrl = momoResponse?.PayUrl,
                 Deeplink = momoResponse?.Deeplink,
-                QrCodeUrl = momoResponse?.QrCodeUrl
+                QrCodeUrl = momoResponse?.QrCodeUrl,
+                RedirectUrlUsed = redirectUrl
             };
         }
 
@@ -156,10 +172,19 @@ namespace Infrastructure.Core.Momo
                 string.IsNullOrWhiteSpace(_options.PartnerCode) ||
                 string.IsNullOrWhiteSpace(_options.AccessKey) ||
                 string.IsNullOrWhiteSpace(_options.SecretKey) ||
-                string.IsNullOrWhiteSpace(_options.RedirectUrl) ||
                 string.IsNullOrWhiteSpace(_options.IpnUrl))
             {
                 throw new Exception("Cấu hình MomoAPI trong appsettings.json chưa đầy đủ.");
+            }
+        }
+
+        private void ValidateConfig(string redirectUrl)
+        {
+            ValidateConfig();
+
+            if (string.IsNullOrWhiteSpace(redirectUrl))
+            {
+                throw new Exception("RedirectUrl của MoMo chưa được cấu hình.");
             }
         }
 

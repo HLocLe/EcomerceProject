@@ -77,6 +77,37 @@ namespace PRN2322.Controllers
                 "Tạo link thanh toán MoMo thành công."));
         }
 
+        [Authorize]
+        [HttpPost("momo/create-mobile")]
+        public async Task<ActionResult<ApiResponse<MomoMobilePaymentResponse>>> CreateMomoMobilePayment([FromBody] CreateMomoMobilePaymentRequest request)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+
+                var result = await _momoPaymentService.CreateMobilePaymentAsync(
+                    request.OrderId,
+                    currentUserId,
+                    request.OrderInfo);
+
+                return Ok(ApiResponse<MomoMobilePaymentResponse>.SuccessResponse(
+                    result,
+                    "Tạo link thanh toán MoMo cho mobile thành công."));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<MomoMobilePaymentResponse>.FailureResponse(
+                    "Bạn chưa đăng nhập hoặc token không hợp lệ.",
+                    new List<string> { ex.Message }));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<MomoMobilePaymentResponse>.FailureResponse(
+                    "Tạo thanh toán MoMo cho mobile thất bại.",
+                    new List<string> { ex.Message }));
+            }
+        }
+
         // FE có thể gọi endpoint này sau khi user quay về từ MoMo để sync lại trạng thái
         [Authorize]
         [HttpGet("momo/orders/{orderId:guid}/status")]
