@@ -13,13 +13,20 @@ namespace Infrastructure.Repositories
 
         public async Task<GiftBox?> GetByCodeAsync(string code)
         {
-            return await dbSet
+            var query = dbSet
                 .Include(g => g.Category)
                 .Include(g => g.ComponentConfig)
                 .Include(g => g.BoxComponents)
                     .ThenInclude(bc => bc.Product)
                 .Include(g => g.Images)
-                .FirstOrDefaultAsync(g => g.Code == code && !g.IsDeleted);
+                .AsQueryable();
+
+            if (_context.Database.IsRelational())
+            {
+                query = query.AsSplitQuery();
+            }
+
+            return await query.FirstOrDefaultAsync(g => g.Code == code && !g.IsDeleted);
         }
 
         public async Task<bool> CodeExistsAsync(string code, Guid? excludeId = null)
@@ -33,32 +40,56 @@ namespace Infrastructure.Repositories
 
         public async Task<IEnumerable<GiftBox>> GetByCategoryAsync(Guid categoryId)
         {
-            return await dbSet
+            var query = dbSet
                 .Include(g => g.Category)
                 .Include(g => g.ComponentConfig)
                 .Include(g => g.Images)
+                .AsQueryable();
+
+            if (_context.Database.IsRelational())
+            {
+                query = query.AsSplitQuery();
+            }
+
+            return await query
                 .Where(g => g.CategoryId == categoryId && !g.IsDeleted)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<GiftBox>> GetActiveGiftBoxesAsync()
         {
-            return await dbSet
+            var query = dbSet
                 .Include(g => g.Category)
                 .Include(g => g.ComponentConfig)
                 .Include(g => g.Images)
+                .AsQueryable();
+
+            if (_context.Database.IsRelational())
+            {
+                query = query.AsSplitQuery();
+            }
+
+            return await query
                 .Where(g => g.IsActive && !g.IsDeleted)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<GiftBox>> GetGiftBoxesByUserIdAsync(Guid userId)
         {
-            return await dbSet
+            var query = dbSet
                 .Include(g => g.Category)
                 .Include(g => g.ComponentConfig)
                 .Include(g => g.BoxComponents)
                     .ThenInclude(bc => bc.Product)
                 .Include(g => g.Images)
+                .AsQueryable();
+
+            if (_context.Database.IsRelational())
+            {
+                query = query.AsSplitQuery();
+            }
+
+            return await query
                 .Where(g => g.UserId == userId && !g.IsDeleted)
                 .ToListAsync();
         }

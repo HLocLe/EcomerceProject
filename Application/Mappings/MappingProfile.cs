@@ -219,12 +219,17 @@ namespace Application.Mappings
                         ? null
                         : src.Images
                             .Where(i => !i.IsDeleted)
+                            .GroupBy(i => i.Id)
+                            .Select(g => g.First())
                             .OrderBy(i => i.SortOrder)
                 ))
                 .ForMember(dest => dest.BoxComponents, opt => opt.MapFrom(src =>
                     src.BoxComponents == null
                         ? null
-                        : src.BoxComponents.Where(bc => !bc.IsDeleted)
+                        : src.BoxComponents
+                            .Where(bc => !bc.IsDeleted)
+                            .GroupBy(bc => bc.Id)
+                            .Select(g => g.First())
                 ));
 
             CreateMap<BoxComponent, BoxComponentResponse>()

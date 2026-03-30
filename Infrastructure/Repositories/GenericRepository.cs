@@ -46,7 +46,13 @@ namespace Infrastructure.Repositories
 
             foreach (var includeProperty in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                query = query.Include(includeProperty);
+                query = query.Include(includeProperty.Trim());
+            }
+
+            // Split query to avoid cartesian explosion when loading multiple collections.
+            if (!string.IsNullOrWhiteSpace(includeProperties) && _context.Database.IsRelational())
+            {
+                query = query.AsSplitQuery();
             }
 
             if (orderBy != null)
@@ -70,7 +76,13 @@ namespace Infrastructure.Repositories
 
             foreach (var includeProperty in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                query = query.Include(includeProperty);
+                query = query.Include(includeProperty.Trim());
+            }
+
+            // Split query to avoid cartesian explosion when loading multiple collections.
+            if (!string.IsNullOrWhiteSpace(includeProperties) && _context.Database.IsRelational())
+            {
+                query = query.AsSplitQuery();
             }
 
             return await query.FirstOrDefaultAsync();
