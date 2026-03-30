@@ -189,6 +189,131 @@ namespace Application.Service.MomoPayment
             };
         }
 
+        public async Task<MomoMobilePaymentResponse> CreateMobilePaymentAsync(Guid orderId, Guid currentUserId, string? orderInfo = null)
+        {
+            var order = await _unitOfWork.OrderRepository.GetFirstOrDefaultAsync(
+                o => o.Id == orderId && o.UserId == currentUserId && !o.IsDeleted,
+                includeProperties: "Payments,OrderDetails");
+
+            if (order == null)
+                throw new UnauthorizedAccessException("Không tìm thấy đơn hàng hoặc bạn không có quyền truy cập.");
+
+            if (!IsOnlineOrder(order))
+                throw new Exception("Chỉ đơn hàng online đang chờ thanh toán mới có thể tạo link MoMo.");
+
+            var payment = order.Payments
+                .Where(x => !x.IsDeleted && IsOnlinePaymentMethod(x.PaymentMethod))
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefault();
+
+            if (payment == null)
+                throw new Exception("Đơn hàng này chưa có bản ghi Payment cho hình thức thanh toán online.");
+
+            if (string.Equals(payment.Status, "Success", StringComparison.OrdinalIgnoreCase))
+                throw new Exception("Đơn hàng này đã thanh toán thành công rồi.");
+
+            payment.PaymentMethod = "MOMO";
+
+            if (string.IsNullOrWhiteSpace(payment.TransactionReference))
+            {
+                payment.TransactionReference = $"MOMO_{payment.Id:N}";
+            }
+
+            payment.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.Repository<Payment>().Update(payment);
+
+            MomoCreateGatewayResultDto gatewayResult;
+
+            try
+            {
+                gatewayResult = await _momoGatewayClient.CreateMobilePaymentAsync(new MomoCreateGatewayRequestDto
+                {
+                    OrderId = order.Id,
+                    OrderNumber = order.OrderNumber,
+                    TransactionReference = payment.TransactionReference!,
+                    Amount = payment.Amount,
+                    OrderInfo = orderInfo
+                });
+            }
+            catch (Exception ex)
+            {
+                payment.Status = "Failed";
+                payment.UpdatedAt = DateTime.UtcNow;
+                _unitOfWork.Repository<Payment>().Update(payment);
+
+                await AddPaymentHistoryAsync(
+                    payment.Id,
+                    payment.Status,
+                    ex.ToString(),
+                    "Gọi MoMo create mobile payment bị exception.");
+
+                await _unitOfWork.SaveChangesAsync();
+
+                throw new Exception("Không gọi được MoMo để tạo link thanh toán mobile.", ex);
+            }
+
+            if (!gatewayResult.IsSuccessStatusCode)
+            {
+                payment.Status = "Failed";
+                payment.UpdatedAt = DateTime.UtcNow;
+                _unitOfWork.Repository<Payment>().Update(payment);
+
+                await AddPaymentHistoryAsync(
+                    payment.Id,
+                    payment.Status,
+                    gatewayResult.RawResponse,
+                    $"Gọi API create mobile MoMo thất bại. HTTP {gatewayResult.HttpStatusCode}");
+
+                await _unitOfWork.SaveChangesAsync();
+
+                throw new Exception($"MoMo trả lỗi HTTP {gatewayResult.HttpStatusCode}: {gatewayResult.RawResponse}");
+            }
+
+            if (gatewayResult.ResultCode != 0)
+            {
+                payment.Status = "Failed";
+                payment.UpdatedAt = DateTime.UtcNow;
+                _unitOfWork.Repository<Payment>().Update(payment);
+
+                await AddPaymentHistoryAsync(
+                    payment.Id,
+                    payment.Status,
+                    gatewayResult.RawResponse,
+                    $"MoMo tạo link mobile thất bại. ResultCode = {gatewayResult.ResultCode}, Message = {gatewayResult.Message}");
+
+                await _unitOfWork.SaveChangesAsync();
+
+                throw new Exception($"MoMo tạo link mobile thất bại: {gatewayResult.Message} ({gatewayResult.ResultCode})");
+            }
+
+            payment.Status = "WaitingForPayment";
+            payment.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.Repository<Payment>().Update(payment);
+
+            await AddPaymentHistoryAsync(
+                payment.Id,
+                payment.Status,
+                gatewayResult.RawResponse,
+                "Tạo link thanh toán MoMo cho mobile thành công. Đang chờ người dùng thanh toán.");
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return new MomoMobilePaymentResponse
+            {
+                OrderId = order.Id,
+                MomoOrderId = payment.TransactionReference!,
+                RequestId = payment.TransactionReference!,
+                Amount = payment.Amount,
+                ResultCode = gatewayResult.ResultCode,
+                Message = gatewayResult.Message,
+                PayUrl = gatewayResult.PayUrl,
+                Deeplink = gatewayResult.Deeplink,
+                QrCodeUrl = gatewayResult.QrCodeUrl,
+                LocalPaymentStatus = payment.Status,
+                RedirectUrlUsed = gatewayResult.RedirectUrlUsed ?? string.Empty
+            };
+        }
+
         /// <summary>
         /// Query trạng thái thanh toán từ MoMo.
         ///
@@ -581,5 +706,7 @@ namespace Application.Service.MomoPayment
         {
             return Convert.ToInt64(Math.Round(amount, 0, MidpointRounding.AwayFromZero));
         }
+
+
     }
 }
