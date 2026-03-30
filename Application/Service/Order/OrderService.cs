@@ -141,6 +141,9 @@ namespace Application.Service.Order
             // KHỐI 4: TỔNG KẾT TIỀN & RẼ NHÁNH TRẠNG THÁI
             // =======================================================
 
+            // Lưu phí ship đã tính để những API đọc lại đơn hàng luôn lấy được đúng dữ liệu.
+            order.ShippingFee = backendShippingFee;
+
             // Tính tiền khách phải trả cuối cùng
             order.FinalAmount = order.TotalAmount - order.DiscountAmount + backendShippingFee;
 
