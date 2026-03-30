@@ -159,6 +159,14 @@ namespace Application.Mappings
 
             CreateMap<Order, OrderResponse>()
                 .ForMember(
+                    dest => dest.ShippingFee,
+                    opt => opt.MapFrom(src =>
+                        src.ShippingFee > 0
+                            ? src.ShippingFee
+                            : Math.Max(0, src.FinalAmount - (src.TotalAmount - src.DiscountAmount))
+                    )
+                )
+                .ForMember(
                     dest => dest.PaymentMethod,
                     opt => opt.MapFrom(src =>
                         src.Payments == null
