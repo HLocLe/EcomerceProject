@@ -36,5 +36,6 @@ namespace PRN2322.Controllers
                 return StatusCode(500, ApiResponse<ChatMessageResponse>.FailureResponse($"Chat failed: {ex.Message}"));
             }
         }
+
     }
 }
