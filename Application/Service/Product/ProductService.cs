@@ -1,36 +1,75 @@
-﻿using Application.DTOs.Request.Product;
+using Application.DTOs.Request.Product;
 using Application.DTOs.Response.Product;
 using AutoMapper;
-using Domain.Entities;
 using Domain.IUnitOfWork;
+using Microsoft.Extensions.Caching.Distributed;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+
 namespace Application.Service.Product
 {
-    using ProductEntity = Domain.Entities.Product;
     using CategoryEntity = Domain.Entities.Category;
 
     public class ProductService : IProductService
     {
+        private const string AllProductsCacheKey = "products:all";
+        private static readonly TimeSpan AllProductsCacheTtl = TimeSpan.FromMinutes(30);
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IDistributedCache _cache;
 
-        public ProductService(IUnitOfWork unitOfWork, IMapper mapper)
+        public ProductService(IUnitOfWork unitOfWork, IMapper mapper, IDistributedCache cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _cache = cache;
         }
 
         public async Task<IEnumerable<ProductResponse>> GetAllProductsAsync()
         {
+            try
+            {
+                var cached = await _cache.GetStringAsync(AllProductsCacheKey);
+                if (!string.IsNullOrEmpty(cached))
+                {
+                    var list = JsonSerializer.Deserialize<List<ProductResponse>>(cached);
+                    if (list != null)
+                        return list;
+                }
+            }
+            catch
+            {
+                // Redis lỗi hoặc payload cũ không đọc được — lấy từ DB
+            }
+
             var products = await _unitOfWork.ProductRepository.FindAsync(
                 filter: p => !p.IsDeleted,
                 includeProperties: "Category,Images,Inventories"
             );
 
-            return _mapper.Map<IEnumerable<ProductResponse>>(products);
+            var mapped = _mapper.Map<List<ProductResponse>>(products);
+
+            try
+            {
+                var opts = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = AllProductsCacheTtl
+                };
+                await _cache.SetStringAsync(
+                    AllProductsCacheKey,
+                    JsonSerializer.Serialize(mapped),
+                    opts);
+            }
+            catch
+            {
+                // Ghi cache lỗi vẫn trả dữ liệu từ DB
+            }
+
+            return mapped;
         }
 
         public async Task<ProductResponse?> GetProductByIdAsync(Guid id)
@@ -92,6 +131,8 @@ namespace Application.Service.Product
             await _unitOfWork.ProductRepository.AddAsync(product);
             await _unitOfWork.SaveChangesAsync();
 
+            await InvalidateAllProductsCacheAsync();
+
             // 6. Reload with Category, Images for response 
             var createdProduct = await _unitOfWork.ProductRepository.GetFirstOrDefaultAsync(
                 filter: p => p.Id == product.Id,
@@ -129,6 +170,8 @@ namespace Application.Service.Product
             _unitOfWork.ProductRepository.Update(product);
             await _unitOfWork.SaveChangesAsync();
 
+            await InvalidateAllProductsCacheAsync();
+
             // Reload with Category for response
             var updatedProduct = await _unitOfWork.ProductRepository.GetFirstOrDefaultAsync(
                 filter: p => p.Id == id,
@@ -154,7 +197,21 @@ namespace Application.Service.Product
             _unitOfWork.ProductRepository.Update(product);
             await _unitOfWork.SaveChangesAsync();
 
+            await InvalidateAllProductsCacheAsync();
+
             return true;
+        }
+
+        private async Task InvalidateAllProductsCacheAsync()
+        {
+            try
+            {
+                await _cache.RemoveAsync(AllProductsCacheKey);
+            }
+            catch
+            {
+                // bỏ qua nếu Redis không sẵn sàng
+            }
         }
     }
 }

@@ -26,7 +26,7 @@ namespace Infrastructure.Core
         public async Task<ChatMessageResponse> GetChatResponseAsync(string userMessage)
         {
             var apiKey = _configuration["OpenRouter:ApiKey"];
-            
+
             if (string.IsNullOrEmpty(apiKey))
             {
                 return new ChatMessageResponse
@@ -35,17 +35,17 @@ namespace Infrastructure.Core
                 };
             }
 
-           
+
             var criteria = await ExtractKeywordsAsync(userMessage);
 
-            
+
             var products = new List<Product>();
             if (criteria.NeedProductSearch)
             {
                 products = await SearchProductsAsync(criteria);
             }
 
-           
+
             var response = await GenerateConsultationAsync(userMessage, products, criteria.NeedProductSearch);
 
             return new ChatMessageResponse
@@ -69,7 +69,7 @@ namespace Infrastructure.Core
         {
             var client = _httpClientFactory.CreateClient();
             var apiKey = _configuration["OpenRouter:ApiKey"];
-            
+
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
             client.DefaultRequestHeaders.Add("HTTP-Referer", _configuration["OpenRouter:Referer"] ?? "https://happybox.vn");
             client.DefaultRequestHeaders.Add("X-Title", "HappyBox-Chatbot");
@@ -86,7 +86,7 @@ namespace Infrastructure.Core
             };
 
             var response = await client.PostAsJsonAsync("https://openrouter.ai/api/v1/chat/completions", requestBody);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
@@ -170,7 +170,7 @@ Chỉ trả về JSON hợp lệ, không thêm văn bản nào khác.
             try
             {
                 var jsonText = await PostToOpenRouterAsync(systemPrompt, userMessage, 0.1f);
-                
+
                 if (string.IsNullOrEmpty(jsonText))
                     return new ProductSearchCriteria();
 
