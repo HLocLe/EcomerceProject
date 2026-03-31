@@ -158,6 +158,26 @@ namespace Application.Mappings
             CreateMap<OrderHistory, OrderHistoryResponse>();
 
             CreateMap<Order, OrderResponse>()
+                .ForMember(
+                    dest => dest.ShippingFee,
+                    opt => opt.MapFrom(src =>
+                        src.ShippingFee > 0
+                            ? src.ShippingFee
+                            : Math.Max(0, src.FinalAmount - (src.TotalAmount - src.DiscountAmount))
+                    )
+                )
+                .ForMember(
+                    dest => dest.PaymentMethod,
+                    opt => opt.MapFrom(src =>
+                        src.Payments == null
+                            ? string.Empty
+                            : src.Payments
+                                .Where(p => !p.IsDeleted)
+                                .OrderByDescending(p => p.CreatedAt)
+                                .Select(p => p.PaymentMethod)
+                                .FirstOrDefault() ?? string.Empty
+                    )
+                )
                 .ForMember(dest => dest.OrderDetails, opt => opt.MapFrom(src => src.OrderDetails))
                 .ForMember(dest => dest.OrderHistories, opt => opt.MapFrom(src => src.OrderHistories));
 
@@ -214,8 +234,23 @@ namespace Application.Mappings
                 .ForMember(dest => dest.ComponentConfigName, opt => opt.MapFrom(src => src.ComponentConfig != null ? src.ComponentConfig.Name : null))
                 .ForMember(dest => dest.IsCustom, opt => opt.MapFrom(src => src.IsCustom))
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
-                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images == null ? null : src.Images.OrderBy(i => i.SortOrder)))
-                .ForMember(dest => dest.BoxComponents, opt => opt.MapFrom(src => src.BoxComponents));
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src =>
+                    src.Images == null
+                        ? null
+                        : src.Images
+                            .Where(i => !i.IsDeleted)
+                            .GroupBy(i => i.Id)
+                            .Select(g => g.First())
+                            .OrderBy(i => i.SortOrder)
+                ))
+                .ForMember(dest => dest.BoxComponents, opt => opt.MapFrom(src =>
+                    src.BoxComponents == null
+                        ? null
+                        : src.BoxComponents
+                            .Where(bc => !bc.IsDeleted)
+                            .GroupBy(bc => bc.Id)
+                            .Select(g => g.First())
+                ));
 
             CreateMap<BoxComponent, BoxComponentResponse>()
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null))

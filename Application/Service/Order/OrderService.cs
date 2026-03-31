@@ -22,7 +22,7 @@ namespace Application.Service.Order
         {
             var order = await _unitOfWork.OrderRepository.GetFirstOrDefaultAsync(
                 filter: o => o.Id == id && !o.IsDeleted,
-                includeProperties: "OrderDetails,OrderHistories" // Gọi ra các bảng con
+                includeProperties: "OrderDetails,OrderHistories,Payments" // Gọi ra các bảng con
             );
             return _mapper.Map<OrderResponse>(order);
         }
@@ -31,7 +31,7 @@ namespace Application.Service.Order
         {
             var orders = await _unitOfWork.OrderRepository.FindAsync(
                 filter: o => !o.IsDeleted,
-                includeProperties: "OrderDetails,OrderHistories" // Gọi ra các bảng con
+                includeProperties: "OrderDetails,OrderHistories,Payments" // Gọi ra các bảng con
             );
             return _mapper.Map<IEnumerable<OrderResponse>>(orders);
         }
@@ -140,6 +140,9 @@ namespace Application.Service.Order
             // =======================================================
             // KHỐI 4: TỔNG KẾT TIỀN & RẼ NHÁNH TRẠNG THÁI
             // =======================================================
+
+            // Lưu phí ship đã tính để những API đọc lại đơn hàng luôn lấy được đúng dữ liệu.
+            order.ShippingFee = backendShippingFee;
 
             // Tính tiền khách phải trả cuối cùng
             order.FinalAmount = order.TotalAmount - order.DiscountAmount + backendShippingFee;
@@ -295,7 +298,7 @@ namespace Application.Service.Order
         {
             var order = await _unitOfWork.OrderRepository.GetFirstOrDefaultAsync(
                 filter: o => o.Id == id && !o.IsDeleted,
-                includeProperties: "OrderDetails,OrderHistories"
+                includeProperties: "OrderDetails,OrderHistories,Payments"
             );
 
             if (order == null) return null;
@@ -469,7 +472,7 @@ namespace Application.Service.Order
             var orders = await _unitOfWork.OrderRepository.FindAsync(
                 filter: o => o.UserId == userId && !o.IsDeleted,
                 orderBy: q => q.OrderByDescending(o => o.CreatedAt), // Đơn mới nhất lên đầu
-                includeProperties: "OrderDetails,OrderHistories"      // Lấy kèm chi tiết và lịch sử
+                includeProperties: "OrderDetails,OrderHistories,Payments"      // Lấy kèm chi tiết và lịch sử
             );
 
             // Map sang Response DTO và trả về dạng List

@@ -114,7 +114,9 @@ namespace Application.Service.GiftBox
                 // 2. Process BoxComponents and update Inventory
                 if (request.Items != null && request.Items.Any())
                 {
-                    foreach (var item in request.Items)
+                    var normalizedItems = GetNormalizedBoxComponentItems(request.Items);
+
+                    foreach (var item in normalizedItems)
                     {
                         // Validate Product exists and is active
                         var product = await _unitOfWork.ProductRepository.GetFirstOrDefaultAsync(
@@ -185,8 +187,9 @@ namespace Application.Service.GiftBox
                 // 3. Add Images if provided
                 if (request.ImageUrls != null && request.ImageUrls.Any())
                 {
+                    var uniqueImageUrls = GetDistinctImageUrls(request.ImageUrls);
                     int sortOrder = 0;
-                    foreach (var imageUrl in request.ImageUrls)
+                    foreach (var imageUrl in uniqueImageUrls)
                     {
                         var image = new ImageEntity
                         {
@@ -266,11 +269,16 @@ namespace Application.Service.GiftBox
                 giftBox.UpdatedAt = DateTime.UtcNow;
                 _unitOfWork.GiftBoxRepository.Update(giftBox);
 
-                // Update BoxComponents if provided (null = không thay ??i, empty = xóa h?t)
+                // Update BoxComponents if provided (null = no change, empty = clear all)
                 if (request.Items != null)
                 {
-                    // Hoàn tr? inventory t? các BoxComponent c?
-                    var existingComponents = giftBox.BoxComponents.Where(bc => !bc.IsDeleted).ToList();
+                    var normalizedItems = GetNormalizedBoxComponentItems(request.Items);
+
+                    // Return inventory from existing components before replacing
+                    var existingComponents = giftBox.BoxComponents
+                        .Where(bc => !bc.IsDeleted)
+                        .DistinctBy(bc => bc.Id)
+                        .ToList();
                     foreach (var oldComponent in existingComponents)
                     {
                         var inventory = (await _unitOfWork.Repository<Inventory>().FindAsync(
@@ -311,8 +319,8 @@ namespace Application.Service.GiftBox
                         _unitOfWork.Repository<BoxComponent>().Update(oldComponent);
                     }
 
-                    // Thêm BoxComponents m?i
-                    foreach (var item in request.Items)
+                    // Add new BoxComponents
+                    foreach (var item in normalizedItems)
                     {
                         var product = await _unitOfWork.ProductRepository.GetFirstOrDefaultAsync(
                             filter: p => p.Id == item.ProductId && !p.IsDeleted,
@@ -373,11 +381,16 @@ namespace Application.Service.GiftBox
                     }
                 }
 
-                // Update Images if provided (null = không thay ??i, empty = xóa h?t)
+                // Update Images if provided (null = no change, empty = clear all)
                 if (request.ImageUrls != null)
                 {
+                    var uniqueImageUrls = GetDistinctImageUrls(request.ImageUrls);
+
                     // Soft delete old images
-                    var existingImages = giftBox.Images.Where(img => !img.IsDeleted).ToList();
+                    var existingImages = giftBox.Images
+                        .Where(img => !img.IsDeleted)
+                        .DistinctBy(img => img.Id)
+                        .ToList();
                     foreach (var oldImage in existingImages)
                     {
                         oldImage.IsDeleted = true;
@@ -387,7 +400,7 @@ namespace Application.Service.GiftBox
 
                     // Add new images
                     int sortOrder = 0;
-                    foreach (var imageUrl in request.ImageUrls)
+                    foreach (var imageUrl in uniqueImageUrls)
                     {
                         var image = new ImageEntity
                         {
@@ -438,6 +451,81 @@ namespace Application.Service.GiftBox
             await _unitOfWork.SaveChangesAsync();
 
             return true;
+        }
+
+        private static IReadOnlyList<string> GetDistinctImageUrls(IEnumerable<string> imageUrls)
+        {
+            var normalizedImageUrls = new List<string>();
+            var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var duplicateUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var imageUrl in imageUrls)
+            {
+                var normalizedUrl = imageUrl?.Trim();
+
+                if (string.IsNullOrWhiteSpace(normalizedUrl))
+                {
+                    throw new InvalidOperationException("ImageUrls cannot contain empty values.");
+                }
+
+                if (!seenUrls.Add(normalizedUrl))
+                {
+                    duplicateUrls.Add(normalizedUrl);
+                    continue;
+                }
+
+                normalizedImageUrls.Add(normalizedUrl);
+            }
+
+            if (duplicateUrls.Any())
+            {
+                throw new InvalidOperationException(
+                    $"ImageUrls contains duplicate values: {string.Join(", ", duplicateUrls)}."
+                );
+            }
+
+            return normalizedImageUrls;
+        }
+
+        private static IReadOnlyList<BoxComponentItemRequest> GetNormalizedBoxComponentItems(IEnumerable<BoxComponentItemRequest> items)
+        {
+            var normalizedItems = new List<BoxComponentItemRequest>();
+            var seenQuantities = new Dictionary<Guid, int>();
+
+            foreach (var item in items)
+            {
+                if (item.ProductId == Guid.Empty)
+                {
+                    throw new InvalidOperationException("Items contains invalid ProductId.");
+                }
+
+                if (item.Quantity <= 0)
+                {
+                    throw new InvalidOperationException($"Item quantity must be greater than 0 for ProductId '{item.ProductId}'.");
+                }
+
+                if (seenQuantities.TryGetValue(item.ProductId, out var existingQuantity))
+                {
+                    if (existingQuantity != item.Quantity)
+                    {
+                        throw new InvalidOperationException(
+                            $"Items contains duplicate ProductId '{item.ProductId}' with different quantities."
+                        );
+                    }
+
+                    // Ignore exact duplicate rows (same ProductId + same Quantity)
+                    continue;
+                }
+
+                seenQuantities[item.ProductId] = item.Quantity;
+                normalizedItems.Add(new BoxComponentItemRequest
+                {
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity
+                });
+            }
+
+            return normalizedItems;
         }
     }
 }
