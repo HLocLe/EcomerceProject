@@ -1,170 +1,172 @@
-# HappyBox - Gift Box E-Commerce Platform
+# HappyBox - Nền Tảng Thương Mại Điện Tử Bán Hộp Quà Tặng
 
-A modern e-commerce platform for managing and selling customizable gift boxes with integrated inventory management, order processing, and payment handling.
+Một nền tảng thương mại điện tử hiện đại được xây dựng để quản lý và bán các hộp quà tặng có thể tùy chỉnh với tích hợp quản lý kho hàng, xử lý đơn hàng và thanh toán.
 
-## 📋 Project Overview
+## Giới Thiệu Dự Án
 
-HappyBox is built using **Clean Architecture** principles with clear separation of concerns across three main layers:
-- **Domain Layer**: Core business entities and rules
-- **Application Layer**: Business logic, DTOs, mappings, and services
-- **Infrastructure Layer**: Data persistence, EF Core configurations, migrations, and external integrations
+HappyBox được xây dựng theo nguyên tắc Clean Architecture với sự phân tách rõ ràng của các lớp chính:
+- Lớp Miền (Domain Layer): Các thực thể kinh doanh cốt lõi và quy tắc
+- Lớp Ứng Dụng (Application Layer): Logic kinh doanh, DTOs, mapping và dịch vụ
+- Lớp Cơ Sở Hạ Tầng (Infrastructure Layer): Lưu trữ dữ liệu, cấu hình EF Core, migration và tích hợp bên ngoài
 
-## 🛠️ Technology Stack
+## Công Nghệ Sử Dụng
 
-- **.NET 8** - Latest long-term support framework
-- **Entity Framework Core 8** - ORM for data access
-- **SQL Server** - Relational database
-- **AutoMapper** - Object-object mapping
-- **BCrypt.NET** - Password hashing
-- **Google.Apis.Auth** - Google OAuth authentication
-- **JWT (JSON Web Tokens)** - Stateless authentication
-- **Redis** - Distributed cache for refresh tokens
+- .NET 8: Framework hỗ trợ dài hạn mới nhất
+- Entity Framework Core 8: ORM để truy cập dữ liệu
+- SQL Server: Cơ sở dữ liệu quan hệ
+- AutoMapper: Mapping đối tượng-đối tượng
+- BCrypt.NET: Mã hóa mật khẩu
+- Google.Apis.Auth: Xác thực Google OAuth
+- JWT (JSON Web Tokens): Xác thực không trạng thái
+- Redis: Bộ nhớ đệm phân tán cho refresh tokens
+- Docker: Containerization
 
-## 🏗️ Architecture & Project Structure
+## Kiến Trúc và Cấu Trúc Dự Án
 
 ```
-PRN2322/
-├── Domain/                          # Core entities & interfaces
-│   ├── Entities/                    # Domain models
-│   ├── Enums/                       # Enumerations
-│   ├── Constants/                   # Constants (RoleIds, etc.)
-│   └── IUnitOfWork/                 # UnitOfWork interface
+EcomerceProject/
+├── Domain/                          # Các thực thể cốt lõi và giao diện
+│   ├── Entities/                    # Các mô hình miền
+│   ├── Enums/                       # Các liệt kê
+│   ├── Constants/                   # Các hằng số (RoleIds, v.v.)
+│   └── IUnitOfWork/                 # Giao diện UnitOfWork
 │
-├── Application/                     # Business logic & DTOs
+├── Application/                     # Logic kinh doanh và DTOs
 │   ├── DTOs/
-│   │   ├── Request/                 # Input DTOs
-│   │   └── Response/                # Output DTOs
-│   ├── IService/                    # Service interfaces
-│   ├── Service/                     # Service implementations
-│   ├── Mappings/                    # AutoMapper profiles
+│   │   ├── Request/                 # DTOs đầu vào
+│   │   └── Response/                # DTOs đầu ra
+│   ├── IService/                    # Giao diện dịch vụ
+│   ├── Service/                     # Triển khai dịch vụ
+│   ├── Mappings/                    # Hồ sơ AutoMapper
 │   └── Application.csproj
 │
-├── Infrastructure/                  # Data & external services
+├── Infrastructure/                  # Dữ liệu và dịch vụ bên ngoài
 │   ├── Data/                        # DbContext
-│   ├── Configurations/              # FluentAPI & Seeder
+│   ├── Configurations/              # FluentAPI và Seeder
 │   ├── Migrations/                  # EF Core migrations
-│   ├── Repositories/                # Generic repository pattern
-│   ├── Services/                    # External service implementations
-│   ├── UnitOfWork/                  # UnitOfWork implementation
+│   ├── Repositories/                # Mẫu kho lưu trữ chung
+│   ├── Services/                    # Triển khai dịch vụ bên ngoài
+│   ├── UnitOfWork/                  # Triển khai UnitOfWork
 │   └── Infrastructure.csproj
 │
-└── PRN2322/                         # API layer (Controllers)
-    ├── Controllers/                 # REST API endpoints
-    ├── Properties/                  # App settings
-    └── Program.cs                   # Startup configuration
+└── EcomerceProject/                 # Lớp API (Controllers)
+    ├── Controllers/                 # Điểm cuối API REST
+    ├── Properties/                  # Cài đặt ứng dụng
+    └── Program.cs                   # Cấu hình khởi động
 ```
 
-## 📊 Database Schema
+## Sơ Đồ Cơ Sở Dữ Liệu
 
-### Core Entities (14 tables)
+Dự án bao gồm 14 bảng chính được tổ chức theo nhóm chức năng:
 
-**Identity:**
-- `Roles` - User roles (Admin, Staff, Customer, Guest)
-- `Users` - User accounts with B2B support
+Xác thực và Phân quyền:
+- Roles: Các vai trò người dùng (Admin, Staff, Customer, Guest)
+- Users: Tài khoản người dùng với hỗ trợ B2B
 
-**Products & Categories:**
-- `Categories` - Product categories with hierarchical support
-- `Products` - Product catalog
-- `Images` - Product/GiftBox images
-- `GiftBoxes` - Customizable gift boxes
-- `GiftBoxComponentConfig` - Gift box component templates
-- `BoxComponents` - Components in a gift box (N-N relationship)
+Sản phẩm và Danh mục:
+- Categories: Danh mục sản phẩm với hỗ trợ phân cấp
+- Products: Danh mục sản phẩm
+- Images: Hình ảnh sản phẩm/hộp quà tặng
+- GiftBoxes: Hộp quà tặng có thể tùy chỉnh
+- GiftBoxComponentConfig: Mẫu thành phần hộp quà tặng
+- BoxComponents: Thành phần trong hộp quà tặng (quan hệ N-N)
 
-**Orders & Inventory:**
-- `Inventory` - Product stock tracking
-- `InventoryTransactions` - Inventory movement logs
-- `Orders` - Customer orders
-- `OrderDetails` - Line items in orders
-- `OrderHistories` - Order status tracking
+Đơn hàng và Kho hàng:
+- Inventory: Theo dõi kho hàng
+- InventoryTransactions: Nhật ký chuyển động kho hàng
+- Orders: Đơn hàng khách hàng
+- OrderDetails: Các mục dòng trong đơn hàng
+- OrderHistories: Theo dõi trạng thái đơn hàng
 
-**Payment & Discounts:**
-- `Payments` - Payment records
-- `PaymentHistories` - Payment transaction logs
-- `Vouchers` - Discount coupons
+Thanh toán và Chiết khấu:
+- Payments: Bản ghi thanh toán
+- PaymentHistories: Nhật ký giao dịch thanh toán
+- Vouchers: Phiếu giảm giá/coupon
 
-## 🎯 Key Features
+## Các Tính Năng Chính
 
-### 1. Authentication & Authorization
-- Google OAuth login with JWT tokens
-- Facebook login integration
-- Email-based registration
-- Role-based access control (RBAC)
-- Password reset with OTP verification
-- Refresh token management via Redis
+Xác thực và Phân quyền:
+- Đăng nhập Google OAuth với JWT tokens
+- Tích hợp đăng nhập Facebook
+- Đăng ký dựa trên email
+- Kiểm soát truy cập dựa trên vai trò (RBAC)
+- Đặt lại mật khẩu với xác minh OTP
+- Quản lý refresh token thông qua Redis
 
-### 2. Product Management
-- Category hierarchy (parent-child relationships)
-- Product catalog with SKU tracking
-- Image management (multiple images per product)
-- Product inventory tracking
+Quản lý Sản phẩm:
+- Phân cấp danh mục (quan hệ cha-con)
+- Danh mục sản phẩm với theo dõi SKU
+- Quản lý hình ảnh (nhiều hình ảnh trên mỗi sản phẩm)
+- Theo dõi kho hàng sản phẩm
 
-### 3. Gift Box Configuration
-- Pre-configured gift box templates (GiftBoxComponentConfig)
-- Customizable gift box creation
-- Box components with quantity management
-- N-N relationship between Products and GiftBoxes
+Cấu hình Hộp Quà Tặng:
+- Mẫu hộp quà tặng được cấu hình sẵn (GiftBoxComponentConfig)
+- Tạo hộp quà tặng có thể tùy chỉnh
+- Thành phần hộp với quản lý số lượng
+- Quan hệ N-N giữa Sản phẩm và Hộp quà tặng
 
-### 4. Order Management
-- Order creation and tracking
-- Order status management (Pending, Processing, Shipped, Delivered, Cancelled)
-- Order history with timestamps
-- Line items for Products and GiftBoxes
+Quản lý Đơn Hàng:
+- Tạo và theo dõi đơn hàng
+- Quản lý trạng thái đơn hàng (Đang chờ, Đang xử lý, Đã gửi, Đã giao, Đã hủy)
+- Lịch sử đơn hàng với dấu thời gian
+- Các mục dòng cho Sản phẩm và Hộp quà tặng
 
-### 5. Inventory System
-- Real-time stock tracking
-- Inventory transactions (Import, Sale, Return, Damage, Transfer)
-- Low stock level alerts
-- Branch-independent (single warehouse)
+Hệ thống Kho hàng:
+- Theo dõi kho hàng theo thời gian thực
+- Giao dịch kho hàng (Nhập, Bán, Trả lại, Hư hỏng, Chuyển)
+- Cảnh báo mức kho hàng thấp
+- Độc lập chi nhánh (kho hàng đơn)
 
-### 6. Payment Processing
-- Multiple payment methods (COD, MOMO, VN_PAY)
-- Payment status tracking (PENDING, COMPLETED, FAILED, REFUNDED)
-- Payment history logs
-- Transaction reference tracking
+Xử lý Thanh toán:
+- Nhiều phương thức thanh toán (COD, MOMO, VN_PAY)
+- Theo dõi trạng thái thanh toán (CHỜ, ĐÃ HOÀN TẤT, THẤT BẠI, HOÀN TIỀN)
+- Nhật ký lịch sử thanh toán
+- Theo dõi tham chiếu giao dịch
 
-### 7. Discount & Promotions
-- Voucher/coupon management
-- Percentage and fixed amount discounts
-- Minimum order value requirements
-- Maximum discount caps
-- Usage limits and date-based activation
+Chiết khấu và Khuyến mãi:
+- Quản lý voucher/coupon
+- Chiết khấu phần trăm và số tiền cố định
+- Yêu cầu giá trị đơn hàng tối thiểu
+- Giới hạn chiết khấu tối đa
+- Giới hạn sử dụng và kích hoạt dựa trên ngày
 
-## 🚀 Getting Started
+## Hướng Dẫn Bắt Đầu
 
-### Prerequisites
+Yêu cầu Tiên Quyết:
 - .NET 8 SDK
-- SQL Server 2019+
-- Visual Studio 2022 or VS Code
+- SQL Server 2019 trở lên
+- Visual Studio 2022 hoặc VS Code
 - Git
 
-### Installation
+Cài đặt:
 
-1. **Clone the repository**
+1. Sao chép repository:
    ```bash
-   git clone https://github.com/loclhse/PRN232.git
-   cd PRN2322
+   git clone https://github.com/HLocLe/EcomerceProject.git
+   cd EcomerceProject
    ```
 
-2. **Restore dependencies**
+2. Khôi phục các phụ thuộc:
    ```bash
    dotnet restore
    ```
 
-3. **Configure database connection**
-   - Edit `appsettings.json` in the PRN2322 project
-   - Update `ConnectionStrings:DefaultConnection`
+3. Cấu hình kết nối cơ sở dữ liệu:
+   - Chỉnh sửa appsettings.json trong dự án EcomerceProject
+   - Cập nhật ConnectionStrings:DefaultConnection
+   
    ```json
    "ConnectionStrings": {
-     "DefaultConnection": "Server=YOUR_SERVER;Database=HappyBoxDb;Trusted_Connection=true;"
+     "DefaultConnection": "Server=YOUR_SERVER;Database=EcomerceDb;Trusted_Connection=true;"
    }
    ```
 
-4. **Apply migrations**
+4. Áp dụng migrations:
    ```bash
-   dotnet ef database update -p Infrastructure -s PRN2322
+   dotnet ef database update -p Infrastructure -s EcomerceProject
    ```
 
-5. **Configure external services** (in `appsettings.json`)
+5. Cấu hình dịch vụ bên ngoài (trong appsettings.json):
    ```json
    {
      "Google": {
@@ -183,93 +185,93 @@ PRN2322/
    }
    ```
 
-6. **Run the application**
+6. Chạy ứng dụng:
    ```bash
-   dotnet run --project PRN2322
+   dotnet run --project EcomerceProject
    ```
 
-   API will be available at: `https://localhost:5001`
+   API sẽ khả dụng tại: https://localhost:5001
 
-## 📚 API Endpoints (Overview)
+## Các Điểm Cuối API (Tổng Quan)
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login with email/password
-- `POST /api/auth/google-login` - Google OAuth login
-- `POST /api/auth/facebook-login` - Facebook OAuth login
-- `POST /api/auth/refresh-token` - Refresh JWT token
-- `POST /api/auth/forgot-password` - Request password reset
-- `POST /api/auth/reset-password` - Reset password with OTP
+Xác thực:
+- POST /api/auth/register: Đăng ký người dùng mới
+- POST /api/auth/login: Đăng nhập với email/mật khẩu
+- POST /api/auth/google-login: Đăng nhập Google OAuth
+- POST /api/auth/facebook-login: Đăng nhập Facebook OAuth
+- POST /api/auth/refresh-token: Làm mới JWT token
+- POST /api/auth/forgot-password: Yêu cầu đặt lại mật khẩu
+- POST /api/auth/reset-password: Đặt lại mật khẩu với OTP
 
-### Products
-- `GET /api/products` - List all products
-- `GET /api/products/{id}` - Get product details
-- `POST /api/products` - Create product (Admin)
-- `PUT /api/products/{id}` - Update product (Admin)
-- `DELETE /api/products/{id}` - Delete product (Admin)
+Sản phẩm:
+- GET /api/products: Liệt kê tất cả sản phẩm
+- GET /api/products/{id}: Lấy chi tiết sản phẩm
+- POST /api/products: Tạo sản phẩm (Admin)
+- PUT /api/products/{id}: Cập nhật sản phẩm (Admin)
+- DELETE /api/products/{id}: Xóa sản phẩm (Admin)
 
-### Categories
-- `GET /api/categories` - List categories
-- `GET /api/categories/{id}` - Get category details
-- `POST /api/categories` - Create category (Admin)
-- `PUT /api/categories/{id}` - Update category (Admin)
-- `DELETE /api/categories/{id}` - Delete category (Admin)
+Danh mục:
+- GET /api/categories: Liệt kê danh mục
+- GET /api/categories/{id}: Lấy chi tiết danh mục
+- POST /api/categories: Tạo danh mục (Admin)
+- PUT /api/categories/{id}: Cập nhật danh mục (Admin)
+- DELETE /api/categories/{id}: Xóa danh mục (Admin)
 
-### Orders
-- `GET /api/orders` - List user's orders
-- `GET /api/orders/{id}` - Get order details
-- `POST /api/orders` - Create new order
-- `PUT /api/orders/{id}/status` - Update order status
+Đơn hàng:
+- GET /api/orders: Liệt kê đơn hàng của người dùng
+- GET /api/orders/{id}: Lấy chi tiết đơn hàng
+- POST /api/orders: Tạo đơn hàng mới
+- PUT /api/orders/{id}/status: Cập nhật trạng thái đơn hàng
 
-### Inventory
-- `GET /api/inventory` - Get inventory levels
-- `POST /api/inventory/transactions` - Log inventory transaction
+Kho hàng:
+- GET /api/inventory: Lấy mức kho hàng
+- POST /api/inventory/transactions: Ghi lại giao dịch kho hàng
 
-## 🔧 Database Migrations
+## Quản Lý Migrations
 
-### Create a new migration
+Tạo migration mới:
 ```bash
-dotnet ef migrations add <MigrationName> -p Infrastructure -s PRN2322
+dotnet ef migrations add <MigrationName> -p Infrastructure -s EcomerceProject
 ```
 
-### Apply migrations
+Áp dụng migrations:
 ```bash
-dotnet ef database update -p Infrastructure -s PRN2322
+dotnet ef database update -p Infrastructure -s EcomerceProject
 ```
 
-### Revert to previous migration
+Quay lại migration trước đó:
 ```bash
-dotnet ef database update <PreviousMigrationName> -p Infrastructure -s PRN2322
+dotnet ef database update <PreviousMigrationName> -p Infrastructure -s EcomerceProject
 ```
 
-### Drop database
+Xóa cơ sở dữ liệu:
 ```bash
-dotnet ef database drop --force -p Infrastructure -s PRN2322
+dotnet ef database drop --force -p Infrastructure -s EcomerceProject
 ```
 
-## 🔐 Security Features
+## Các Tính Năng Bảo Mật
 
-- JWT-based stateless authentication
-- Password hashing with BCrypt
-- OTP-based password reset
-- Role-based authorization
-- HTTPS enforcement
-- CORS configuration
-- OAuth 2.0 integration (Google, Facebook)
-- Refresh token rotation with Redis
+- Xác thực không trạng thái dựa trên JWT
+- Mã hóa mật khẩu với BCrypt
+- Đặt lại mật khẩu dựa trên OTP
+- Phân quyền dựa trên vai trò
+- Thực thi HTTPS
+- Cấu hình CORS
+- Tích hợp OAuth 2.0 (Google, Facebook)
+- Xoay refresh token với Redis
 
-## 📝 Configuration
+## Cấu Hình
 
-### appsettings.json Structure
+Cấu trúc appsettings.json:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=...;Database=HappyBoxDb;..."
+    "DefaultConnection": "Server=...;Database=EcomerceDb;..."
   },
   "Jwt": {
     "SecretKey": "your-super-secret-key-min-32-chars",
-    "Issuer": "HappyBox",
-    "Audience": "HappyBoxUsers",
+    "Issuer": "EcomerceProject",
+    "Audience": "EcomerceUsers",
     "ExpirationMinutes": 30
   },
   "Google": {
@@ -287,52 +289,52 @@ dotnet ef database drop --force -p Infrastructure -s PRN2322
 }
 ```
 
-## 🧪 Testing
+## Kiểm Thử
 
-Run unit tests:
+Chạy các kiểm tra đơn vị:
 ```bash
 dotnet test
 ```
 
-## 📖 Development Guidelines
+## Hướng Dẫn Phát Triển
 
-### Code Style
-- Follow C# naming conventions (PascalCase for public members)
-- Use async/await for I/O operations
-- Keep methods focused and small
-- Use meaningful variable names
+Kiểu Mã:
+- Tuân theo các quy ước đặt tên C# (PascalCase cho các thành viên công khai)
+- Sử dụng async/await cho các hoạt động I/O
+- Giữ các phương thức tập trung và nhỏ
+- Sử dụng tên biến có ý nghĩa
 
-### Git Workflow
-1. Create feature branch: `git checkout -b feature/feature-name`
-2. Commit changes: `git commit -am 'Add feature'`
-3. Push to branch: `git push origin feature/feature-name`
-4. Create Pull Request
+Quy trình Git:
+1. Tạo nhánh tính năng: git checkout -b feature/feature-name
+2. Commit thay đổi: git commit -am 'Add feature'
+3. Đẩy đến nhánh: git push origin feature/feature-name
+4. Tạo Pull Request
 
-### Database Changes
-- Always create migrations for schema changes
-- Use meaningful migration names
-- Include seeder updates if necessary
+Thay đổi Cơ Sở Dữ Liệu:
+- Luôn tạo migrations cho các thay đổi lược đồ
+- Sử dụng tên migrations có ý nghĩa
+- Bao gồm các bản cập nhật seeder nếu cần thiết
 
-## 🤝 Contributing
+## Đóng Góp
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+1. Fork repository
+2. Tạo nhánh tính năng của bạn
+3. Commit các thay đổi của bạn
+4. Đẩy đến nhánh
+5. Tạo Pull Request
 
-## 📄 License
+## Giấy Phép
 
-This project is licensed under the MIT License.
+Dự án này được cấp phép dưới Giấy phép MIT.
 
-## 👨‍💻 Author
+## Tác Giả
 
-**Loc** - Initial development
+Loc - Phát triển ban đầu
 
-## 📞 Support
+## Hỗ Trợ
 
-For support, open an issue on GitHub or contact the development team.
+Để nhận hỗ trợ, vui lòng mở issue trên GitHub hoặc liên hệ với nhóm phát triển.
 
 ---
 
-**Last Updated:** January 29, 2026
+Cập nhật Lần Cuối: 11 Tháng 5 Năm 2026
