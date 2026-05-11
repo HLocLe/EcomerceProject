@@ -323,10 +323,6 @@ Thay đổi Cơ Sở Dữ Liệu:
 4. Đẩy đến nhánh
 5. Tạo Pull Request
 
-## Giấy Phép
-
-Dự án này được cấp phép dưới Giấy phép MIT.
-
 ## Tác Giả
 
 Loc - Phát triển ban đầu
