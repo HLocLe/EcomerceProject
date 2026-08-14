@@ -315,22 +315,4 @@ Thay đổi Cơ Sở Dữ Liệu:
 - Sử dụng tên migrations có ý nghĩa
 - Bao gồm các bản cập nhật seeder nếu cần thiết
 
-## Đóng Góp
 
-1. Fork repository
-2. Tạo nhánh tính năng của bạn
-3. Commit các thay đổi của bạn
-4. Đẩy đến nhánh
-5. Tạo Pull Request
-
-## Tác Giả
-
-Loc - Phát triển ban đầu
-
-## Hỗ Trợ
-
-Để nhận hỗ trợ, vui lòng mở issue trên GitHub hoặc liên hệ với nhóm phát triển.
-
----
-
-Cập nhật Lần Cuối: 11 Tháng 5 Năm 2026
